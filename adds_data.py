@@ -80,8 +80,7 @@ def get_metar_country(country_code):
 
 
 if __name__ == '__main__':
-    metars = get_metar_country('ru')
+    metars = get_metar_country('gb')
     print len(metars)
     for metar in metars:
-        if metar.snow_depth.valid:
             print metar.identifier, ' : ', metar.noaa_flight_category, '\t: ', metar.snow_depth
