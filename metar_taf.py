@@ -171,8 +171,7 @@ class Metar(WeatherState):
     def __init__(self):
         super(Metar, self).__init__()
         self.identifier = WeatherField(True)
-        self.date = WeatherField(True)
-        self.time = WeatherField(True)
+        self.report_time = WeatherField(True)
         self.noaa_flight_category = WeatherField()
         self.raw = WeatherField(True)
 

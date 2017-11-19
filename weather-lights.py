@@ -1,8 +1,9 @@
+from time import sleep
 
 from neopixel import *
-from adds_data import get_metar
+from adds_data import MetarCache
 
-airports = ['EGKB', 'EGHI', 'EGGP', 'EGGD']
+airports = ['EGKB', 'EGHI', 'EGGP', 'EGGD', 'BIEG', 'EDDS']
 
 # LED strip configuration:
 LED_COUNT      = len(airports)      # Number of LED pixels.
@@ -13,7 +14,7 @@ LED_DMA        = 5       # DMA channel to use for generating signal (try 5)
 LED_BRIGHTNESS = 255     # Set to 0 for darkest and 255 for brightest
 LED_INVERT     = False   # True to invert the signal (when using NPN transistor level shift)
 LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
-LED_STRIP      = ws.WS2811_STRIP_GRB   # Strip type and colour ordering
+LED_STRIP      = ws.WS2811_STRIP_RGB   # Strip type and colour ordering
 
 
 colours = {
@@ -25,8 +26,10 @@ colours = {
 
 BLANK = Color(0,0,0)
 
-def get_colour(airport_id):
-    metar = get_metar(airport_id)
+def get_colour(airport_id, metars):
+    metar = metars[airport_id]
+    if metar is None:
+        return BLANK
     if not metar.noaa_flight_category.valid:
         return BLANK
     condition = metar.noaa_flight_category.data
@@ -34,15 +37,22 @@ def get_colour(airport_id):
         return BLANK
     return colours[condition]
 
-def set_colours(strip, airport_list):
+def set_colours(strip, cache, airport_list):
+    metars = cache.get_metars(airport_list)
     for airport, n in zip(airport_list, range(0, len(airport_list))):
-        colour = get_colour(airport)
+        colour = get_colour(airport, metars)
         strip.setPixelColor(n, colour)
     strip.show()
 
 
-if __name__=='__main__':
+def main():
     strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL,
                               LED_STRIP)
     strip.begin()
-    set_colours(strip, airports)
+    cache = MetarCache()
+    while True:
+        set_colours(strip, cache, airports)
+        sleep(60)
+
+if __name__=='__main__':
+    main()
