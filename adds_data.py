@@ -4,11 +4,11 @@ See https://aviationweather.gov/adds/dataserver
 """
 
 import urllib2
-import xml.etree.cElementTree as ET
+import xml.etree.cElementTree as et
 from metar_taf import Metar
 from datetime import datetime, timedelta
 
-SINGLE_ID_URL = "https://aviationweather.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&hoursBeforeNow=3&mostRecent=true&stationString=%s"
+SINGLE_ID_URL = "https://aviationweather.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&hoursBeforeNow=3&mostRecentForEachStation=true&stationString=%s"
 MULTI_ID_URL = "https://aviationweather.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&hoursBeforeNow=3&mostRecentForEachStation=true&stationString=~%s"
 
 
@@ -57,6 +57,8 @@ def parse_metar(xml_data):
     # todo: parse extra wx (eg RA, DZ, FZFG)
     # todo parse metar time
 
+    print "Parsed METAR for %s" % metar.identifier.data
+
     return metar
 
 
@@ -67,7 +69,7 @@ def get_metar(identifier):
     :return: the metar for the airport
     """
     response = urllib2.urlopen(SINGLE_ID_URL % identifier)
-    xml_tree = ET.parse(response)
+    xml_tree = et.parse(response)
     root = xml_tree.getroot()
     metars = root.find("data").findall("METAR")
     return parse_metar(metars[0])
@@ -75,7 +77,7 @@ def get_metar(identifier):
 
 def get_metar_country(country_code):
     response = urllib2.urlopen(MULTI_ID_URL % country_code)
-    xml_tree = ET.parse(response)
+    xml_tree = et.parse(response)
     root = xml_tree.getroot()
     metars = root.find("data").findall("METAR")
     return map(parse_metar, metars)
@@ -90,7 +92,7 @@ def get_metar_list(identifiers):
         return []
     id_list = ','.join(identifiers)
     response = urllib2.urlopen(SINGLE_ID_URL % id_list)
-    xml_tree = ET.parse(response)
+    xml_tree = et.parse(response)
     root = xml_tree.getroot()
     metars = root.find("data").findall("METAR")
     return map(parse_metar, metars)
@@ -124,7 +126,7 @@ class MetarCache(object):
         now = datetime.now()
 
         del_list = []
-        for airport_id, t in self._missing_entries:
+        for airport_id, t in self._missing_entries.items():
             if t + self._missing_timeout < now:
                 del_list.append(airport_id)
         for airport_id in del_list:
@@ -135,8 +137,7 @@ class MetarCache(object):
             if not metar.report_time.valid:
                 if t + self._refresh < now:
                     del_list.append(airport_id)
-                else:
-                    continue
+                continue
             if metar.report_time.data + self._min_replacement < now and t + self._refresh < now:
                 del_list.append(airport_id)
         for airport_id in del_list:
